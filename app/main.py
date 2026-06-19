@@ -2,7 +2,6 @@ import time
 from hashlib import sha256
 from multiprocessing import Pool, cpu_count
 
-
 PASSWORDS_TO_BRUTE_FORCE = [
     "b4061a4bcfe1a2cbf78286f3fab2fb578266d1bd16c414c650c5ac04dfc696e1",
     "cf0b0cfc90d8b4be14e00114827494ed5522e9aa1c7e6960515b58626cad0b44",
@@ -32,15 +31,12 @@ def search_chunk(args: tuple) -> dict:
         if candidate_hash in target_hashes:
             found[candidate_hash] = candidate
 
-        if len(found) == len(target_hashes):
-            break
-
     return found
 
 
 def brute_force_password() -> None:
     target_set = set(PASSWORDS_TO_BRUTE_FORCE)
-    total = 100_000_000  # 00000000 .. 99999999
+    total = 100_000_000
     workers = cpu_count()
 
     chunk_size = total // workers
@@ -55,11 +51,14 @@ def brute_force_password() -> None:
         for partial_result in pool.imap_unordered(search_chunk, chunks):
             results.update(partial_result)
 
-    for original_hash in PASSWORDS_TO_BRUTE_FORCE:
-        password = results.get(original_hash, "NOT FOUND")
-        print(f"{original_hash[:16]}...  →  {password}")
+    assert len(results) == 10, (
+        f"Expected 10 passwords, found {len(results)}. "
+        f"Missing: {target_set - set(results.keys())}"
+    )
 
-    print(f"\nЗнайдено паролів: {len(results)}/10")
+    print("Found passwords:")
+    for original_hash in PASSWORDS_TO_BRUTE_FORCE:
+        print(results[original_hash])
 
 
 if __name__ == "__main__":
@@ -67,4 +66,4 @@ if __name__ == "__main__":
     brute_force_password()
     end_time = time.perf_counter()
 
-    print("Elapsed:", end_time - start_time)
+    print("Elapsed:", round(end_time - start_time, 2), "seconds")
